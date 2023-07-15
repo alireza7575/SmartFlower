@@ -1,0 +1,55 @@
+<!DOCTYPE HTML><html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart flower</title>
+  <style>
+    html {font-family: Arial; display: inline-block; text-align: center;}
+    h2 {font-size: 2.4rem;}
+    p {font-size: 2.2rem;}
+    body {max-width: 600px; margin:0px auto; padding-bottom: 25px;}
+    .switch {position: relative; display: inline-block; width: 120px; height: 68px} 
+    .switch input {display: none}
+    .slider {position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 34px}
+    .slider:before {position: absolute; content: ""; height: 52px; width: 52px; left: 8px; bottom: 8px; background-color: #fff; -webkit-transition: .4s; transition: .4s; border-radius: 68px}
+    input:checked+.slider {background-color: #2196F3}
+    input:checked+.slider:before {-webkit-transform: translateX(52px); -ms-transform: translateX(52px); transform: translateX(52px)}
+    .slider2 { -webkit-appearance: none; margin: 14px; width: 300px; height: 20px; background: #ccc;
+      outline: none; -webkit-transition: .2s; transition: opacity .2s;}
+    .slider2::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 30px; height: 30px; background: #2f4468; cursor: pointer;}
+    .slider2::-moz-range-thumb { width: 30px; height: 30px; background: #2f4468; cursor: pointer; } 
+  </style>
+</head>
+<body onload="startTimer()">
+  <input type="hidden"id="defultTimer"  value="%TIMERVALUE%"  defaultValue="431987233" > 
+  <p> time left until next watering: </p>
+  <p> <span id="timer"></span> </p>
+  <p> current humidity: <span id="humidity">"%HUMIDITY%"</span></p>
+  %BUTTONPLACEHOLDER%
+<script>
+function toggleCheckbox(element) {
+  var xhr = new XMLHttpRequest();
+  if(element.checked){ xhr.open("GET", "/waterpump?state=1", true); xhr.send();
+    setTimeout(function(){ xhr.open("GET", "/waterpump?state=0", true); 
+    document.getElementById(element.id).checked = false; xhr.send(); }, sliderValue*1000);
+  }
+}
+
+function startTimer() {
+  var sliderValue = document.getElementById("defultTimer").value/ 1000;
+  var count = sliderValue, timer = setInterval(function() {
+      count--; 
+      var daysout = parseInt(count / 86400);
+      var hoursout = parseInt((count - daysout * 86400)/3600);
+      var minutesout = parseInt((count - daysout * 86400 - hoursout * 3600)/60);
+      var secondsout = parseInt(count - daysout * 86400 - hoursout * 3600 - minutesout * 60);
+      document.getElementById("timer").innerHTML = daysout + "d " + hoursout +"h " + minutesout + "m " + secondsout + "s ";
+   if(count == 0){ clearInterval(timer); }
+    }, 1000);
+    sliderValue = sliderValue*1000;
+    setTimeout(function(){ 
+    document.getElementById("output").checked = true;}, sliderValue);
+}
+
+</script>
+</body>
+</html>
