@@ -1,55 +1,169 @@
-<!DOCTYPE HTML><html>
+<!DOCTYPE HTML>
+<html>
+
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smart flower</title>
   <style>
-    html {font-family: Arial; display: inline-block; text-align: center;}
-    h2 {font-size: 2.4rem;}
-    p {font-size: 2.2rem;}
-    body {max-width: 600px; margin:0px auto; padding-bottom: 25px;}
-    .switch {position: relative; display: inline-block; width: 120px; height: 68px} 
-    .switch input {display: none}
-    .slider {position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 34px}
-    .slider:before {position: absolute; content: ""; height: 52px; width: 52px; left: 8px; bottom: 8px; background-color: #fff; -webkit-transition: .4s; transition: .4s; border-radius: 68px}
-    input:checked+.slider {background-color: #2196F3}
-    input:checked+.slider:before {-webkit-transform: translateX(52px); -ms-transform: translateX(52px); transform: translateX(52px)}
-    .slider2 { -webkit-appearance: none; margin: 14px; width: 300px; height: 20px; background: #ccc;
-      outline: none; -webkit-transition: .2s; transition: opacity .2s;}
-    .slider2::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 30px; height: 30px; background: #2f4468; cursor: pointer;}
-    .slider2::-moz-range-thumb { width: 30px; height: 30px; background: #2f4468; cursor: pointer; } 
+    html {
+      font-family: Arial, Helvetica, sans-serif;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: white;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #143642;
+    }
+
+    .topnav {
+      overflow: hidden;
+      background-color: #143642;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    .content {
+      padding: 30px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background-color: #F8F7F9;
+      ;
+      box-shadow: 2px 2px 12px 1px rgba(140, 140, 140, .5);
+      padding-top: 10px;
+      padding-bottom: 20px;
+    }
+
+    .button {
+      padding: 15px 50px;
+      font-size: 24px;
+      text-align: center;
+      outline: none;
+      color: #fff;
+      background-color: #0f8b8d;
+      border: none;
+      border-radius: 5px;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    }
+
+    /*.button:hover {background-color: #0f8b8d}*/
+    .button:active {
+      background-color: #0f8b8d;
+      box-shadow: 2 2px #CDCDCD;
+      transform: translateY(2px);
+    }
+
+    .state {
+      font-size: 1.5rem;
+      color: #8c8c8c;
+      font-weight: bold;
+    }
   </style>
+  <title>Smart flower</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
 </head>
-<body onload="startTimer()">
-  <input type="hidden"id="defultTimer"  value="%TIMERVALUE%"  defaultValue="431987233" > 
-  <p> time left until next watering: </p>
-  <p> <span id="timer"></span> </p>
-  <p> current humidity: <span id="humidity">"%HUMIDITY%"</span></p>
-  %BUTTONPLACEHOLDER%
-<script>
-function toggleCheckbox(element) {
-  var xhr = new XMLHttpRequest();
-  if(element.checked){ xhr.open("GET", "/waterpump?state=1", true); xhr.send();
-    setTimeout(function(){ xhr.open("GET", "/waterpump?state=0", true); 
-    document.getElementById(element.id).checked = false; xhr.send(); }, sliderValue*1000);
-  }
-}
 
-function startTimer() {
-  var sliderValue = document.getElementById("defultTimer").value/ 1000;
-  var count = sliderValue, timer = setInterval(function() {
-      count--; 
-      var daysout = parseInt(count / 86400);
-      var hoursout = parseInt((count - daysout * 86400)/3600);
-      var minutesout = parseInt((count - daysout * 86400 - hoursout * 3600)/60);
-      var secondsout = parseInt(count - daysout * 86400 - hoursout * 3600 - minutesout * 60);
-      document.getElementById("timer").innerHTML = daysout + "d " + hoursout +"h " + minutesout + "m " + secondsout + "s ";
-   if(count == 0){ clearInterval(timer); }
-    }, 1000);
-    sliderValue = sliderValue*1000;
-    setTimeout(function(){ 
-    document.getElementById("output").checked = true;}, sliderValue);
-}
-
-</script>
+<body>
+  <div class="topnav">
+    <h1>Smart flower</h1>
+  </div>
+  <div class="content">
+    <div class="card">
+      <h2>Flower status</h2>
+      <p class="state">Water pump: <span id="pumpState">%PUMPSTATE%</span></p>
+      <p class="state">Soil humidity: <span id="humidity">%HUMIDITY%</span></p>
+      <p class="state">Remaining time: <span id="timer">%TIMER%</span></p>
+      <p><button id="button" class="button">Turn On</button></p>
+    </div>
+  </div>
+  <script>
+    var gateway = `ws://${window.location.hostname}/ws`;
+    var websocket;
+    window.addEventListener('load', onLoad);
+    window.addEventListener('DOMContentLoaded', function () {
+      startTimer(document.getElementById('timer').innerHTML);
+    }, false);
+    function initWebSocket() {
+      console.log('Trying to open a WebSocket connection...');
+      websocket = new WebSocket(gateway);
+      websocket.onopen = onOpen;
+      websocket.onclose = onClose;
+      websocket.onmessage = onMessage; // <-- add this line
+    }
+    function onOpen(event) {
+      console.log('Connection opened');
+    }
+    function onClose(event) {
+      console.log('Connection closed');
+      setTimeout(initWebSocket, 2000);
+    }
+    function onMessage(event) {
+      var obj = JSON.parse(event.data);
+      document.getElementById('pumpState').innerHTML = obj.pumpState;
+      document.getElementById('humidity').innerHTML = obj.humidity;
+      console.log(obj.pumpState);
+      console.log(obj.humidity);
+      console.log(obj.timerValue);
+      startTimer(obj.timerValue);
+      var state;
+      if (obj.pumpState == "1") {
+        state = "ON";
+        document.getElementById('button').style.backgroundColor = "DarkRed";
+        document.getElementById('button').textContent = "Turn Off"
+      }
+      else {
+        state = "OFF";
+        document.getElementById('button').style.backgroundColor = "DarkGreen";
+        document.getElementById('button').textContent = "Turn On"
+      }
+      document.getElementById('pumpState').innerHTML = state;
+    }
+    var count, timer, timerValue = 0;
+    function startTimer(timerValue) {
+      clearInterval(timer);
+      count = timerValue, timer = setInterval(function () {
+        count--;
+        var daysout = parseInt(count / 86400);
+        var hoursout = parseInt((count - daysout * 86400) / 3600);
+        var minutesout = parseInt((count - daysout * 86400 - hoursout * 3600) / 60);
+        var secondsout = parseInt(count - daysout * 86400 - hoursout * 3600 - minutesout * 60);
+        document.getElementById("timer").innerHTML = daysout + "d " + hoursout + "h " + minutesout + "m " + secondsout + "s ";
+        if (count == 0) { clearInterval(timer); }
+      }, 1000);
+    }
+    function onLoad(event) {
+      initWebSocket();
+      initButton();
+    }
+    function initButton() {
+      if (document.getElementById('pumpState').innerHTML == "ON") {
+        document.getElementById('button').style.backgroundColor = "DarkRed";
+        document.getElementById('button').textContent = "Turn Off"
+      } else {
+        document.getElementById('button').style.backgroundColor = "DarkGreen";
+        document.getElementById('button').textContent = "Turn On"
+      }
+      document.getElementById('button').addEventListener('click', toggle);
+    }
+    function toggle() {
+      websocket.send(document.getElementById('button').innerHTML);
+    }
+  </script>
 </body>
+
 </html>
